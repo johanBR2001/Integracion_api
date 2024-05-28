@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Main Page</h1>
+        <div id="userInfo" class="info-box"></div>
+        <h2>Archivos en Google Drive</h2>
+        <div id="driveFilesContainer" class="info-box">
+            <div id="driveFiles" class="scrollable"></div>
+        </div>
+        <button id="loadMore" style="display: none;">Cargar más</button>
+    </div>
+    <script>
+        let files = [];
+        let currentIndex = 0;
+        const batchSize = 10;
+
+        window.onload = function() {
+            const token = new URLSearchParams(window.location.search).get('token');
+
+            // Obtener información del perfil del usuario
+            fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('User Info:', data);
+                document.getElementById('userInfo').innerText = `Nombre: ${data.name}\nEmail: ${data.email}`;
+            })
+            .catch(error => console.error('Error:', error));
+
+            // Listar archivos en Google Drive
+            fetch('https://www.googleapis.com/drive/v3/files', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Drive Files:', data);
+                files = data.files;
+                displayFiles();
+                if (files.length > batchSize) {
+                    document.getElementById('loadMore').style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        };
+
+        document.getElementById('loadMore').addEventListener('click', displayFiles);
+
+        function displayFiles() {
+            const fileList = document.getElementById('driveFiles');
+            let fileListHtml = fileList.innerHTML || '<ul>';
+            const endIndex = Math.min(currentIndex + batchSize, files.length);
+            for (let i = currentIndex; i < endIndex; i++) {
+                const file = files[i];
+                fileListHtml += `<li><strong>Nombre:</strong> ${file.name} <br> <strong>ID:</strong> ${file.id}</li>`;
+            }
+            currentIndex = endIndex;
+            fileListHtml += '</ul>';
+            fileList.innerHTML = fileListHtml;
+
+            if (currentIndex >= files.length) {
+                document.getElementById('loadMore').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
